@@ -15,12 +15,12 @@ load_settings() {
 	DEFAULT_EXCLUDE='node_modules,.git'
 	DEFAULT_ALIAS='gd'
 
-	GTP_ROOT=''
-	GTP_DEPTH=''
-	GTP_EXCLUDE=''
-	GTP_ALIAS=''
+	GODERE_ROOT=''
+	GODERE_DEPTH=''
+	GODERE_EXCLUDE=''
+	GODERE_ALIAS=''
 
-	GTP_COMMAND_STAT=''
+	GODERE_COMMAND_STAT=''
 }
 
 detect_dialog_command() {
@@ -28,7 +28,7 @@ detect_dialog_command() {
 		return
 	fi
 	if command -v dialog >/dev/null 2>&1; then
-		DIALOG_COMMAND="dialog --keep-title"
+		DIALOG_COMMAND="dialog --keep-tite" # This is not a typo
 	elif command -v whiptail >/dev/null 2>&1; then
 		DIALOG_COMMAND="whiptail"
 	else
@@ -42,10 +42,10 @@ detect_environment() {
 
 	local sysname="$(uname -s)"
 	if [[ $sysname = "Linux" ]]; then
-		GTP_COMMAND_STAT='stat'
+		GODERE_COMMAND_STAT='stat'
 	elif [[ $sysname = "Darwin" ]]; then
 		[[ $(type -t gstat) == "file" ]] || fatal "Requirement missing: coreutils. Try: brew install coreutils"
-		GTP_COMMAND_STAT='gstat'
+		GODERE_COMMAND_STAT='gstat'
 	else
 		fatal "Unsupported nix type: $sysname"
 	fi
@@ -75,7 +75,7 @@ _do_show_dialog() {
 
 	# Show dialog
 	tput smcup
-	clear
+	#clear
 	exec 7>&1
 	DIALOG_RESULT=$(
 		( bash -c "$cmd" >&7 ) 2>&1
@@ -110,35 +110,35 @@ welcome_screen() {
 	\n
 	Press enter to start the installation or ESC to cancel. \n
 	' 15 85" \
-		|| fatal "Installation cancelled"
+		|| fatal "Installation cancelled on welcome_screen"
 }
 
 input_root() {
-	[[ ! -z $GTP_ROOT ]] && return
+	[[ ! -z $GODERE_ROOT ]] && return
 	_do_show_dialog "--title 'Projects root' --inputbox 'Enter the path where you keep your projects (tip: you can enter \$HOME for your home folder)' 10 40 '$DEFAULT_ROOT'" \
 		|| fatal "Installation cancelled"
-	GTP_ROOT="$DIALOG_RESULT"
+	GODERE_ROOT="$DIALOG_RESULT"
 }
 
 input_depth() {
-	[[ ! -z $GTP_DEPTH ]] && return
+	[[ ! -z $GODERE_DEPTH ]] && return
 	_do_show_dialog "--title 'Search depth' --inputbox 'Max depth when searching through your project hiearchy' 10 40 '$DEFAULT_DEPTH'" \
 		|| fatal "Installation cancelled"
-	GTP_DEPTH="$DIALOG_RESULT"
+	GODERE_DEPTH="$DIALOG_RESULT"
 }
 
 input_exclude() {
-	[[ ! -z $GTP_EXCLUDE ]] && return
+	[[ ! -z $GODERE_EXCLUDE ]] && return
 	_do_show_dialog "--title 'Exclude list' --inputbox 'Comma-separated list of directories to exclude from search' 10 40 '$DEFAULT_EXCLUDE'" \
 		|| fatal "Installation cancelled"
-	GTP_EXCLUDE="$DIALOG_RESULT"
+	GODERE_EXCLUDE="$DIALOG_RESULT"
 }
 
 input_alias() {
-	[[ ! -z $GTP_ALIAS ]] && return
+	[[ ! -z $GODERE_ALIAS ]] && return
 	_do_show_dialog "--title 'Command alias' --inputbox 'Alias under which to install Godere (this is what you type in your console to run the command)' 10 40 '$DEFAULT_ALIAS'" \
 		|| fatal "Installation cancelled"
-	GTP_ALIAS="$DIALOG_RESULT"
+	GODERE_ALIAS="$DIALOG_RESULT"
 }
 
 generate_code() {
@@ -152,10 +152,10 @@ generate_code() {
 # For details, please visit: ${WEBSITE}
 #
 
-GODERE_ROOT="$GTP_ROOT"
-GODERE_DEPTH=$GTP_DEPTH
-GODERE_STAT="$GTP_COMMAND_STAT"
-GODERE_EXCLUDE_DIRS="$GTP_EXCLUDE"
+GODERE_ROOT="$GODERE_ROOT"
+GODERE_DEPTH=$GODERE_DEPTH
+GODERE_STAT="$GODERE_COMMAND_STAT"
+GODERE_EXCLUDE_DIRS="$GODERE_EXCLUDE"
 
 EOF
 
@@ -163,7 +163,7 @@ EOF
 
 	cat <<EOF
 
-alias $GTP_ALIAS=godere
+alias $GODERE_ALIAS=godere
 
 #[GODERE_CODE_END]
 EOF
@@ -173,9 +173,13 @@ do_output_to_file() {
 	local target_path="$1"
 
 	touch $target_path
-	local tmp_filename="/tmp/gtp_target.$!"
+	local tmp_filename="/tmp/godere_target.$!"
 	# Legacy:
 	sed -e '1h;2,$H;$!d;g' -e 's/\n*#\[GO_TO_PROJECT_CODE_START\].*#\[GO_TO_PROJECT_CODE_END]\n*/\
+/' $target_path > $tmp_filename \
+		|| fatal "Failed to process $target_path"
+	{ cat $tmp_filename ; echo "" ; generate_code ; } > $target_path
+
 	sed -e '1h;2,$H;$!d;g' -e 's/\n*#\[GODERE_CODE_START\].*#\[GODERE_CODE_END]\n*/\
 /' $target_path > $tmp_filename \
 		|| fatal "Failed to process $target_path"
@@ -214,9 +218,9 @@ do_install_stdout() {
 confirmation() {
 	_do_show_dialog "--title 'Ready to install' --menu '\n
 	GoToProject is ready to be installed with the following options:\n
-	     Root: $GTP_ROOT \n
-	    Depth: $GTP_DEPTH \n
-	    Alias: $GTP_ALIAS \n
+	     Root: $GODERE_ROOT \n
+	    Depth: $GODERE_DEPTH \n
+	    Alias: $GODERE_ALIAS \n
 	\n
 	Please chose the install target
 	' 17 70 4 bashrc 'Modify your $HOME/.bashrc' bash_profile 'Modify your $HOME/.bash_profile' stdout 'Print the code into the terminal'" \

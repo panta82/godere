@@ -1,25 +1,25 @@
-[[ -z ${GO_TO_PROJECT_ROOT} ]] && GO_TO_PROJECT_ROOT="$HOME"
-[[ -z ${GO_TO_PROJECT_DEPTH} ]] && GO_TO_PROJECT_DEPTH="4"
-[[ -z ${GO_TO_PROJECT_STAT} ]] && GO_TO_PROJECT_STAT="stat"
-[[ -z ${GO_TO_PROJECT_EXCLUDE_DIRS} ]] && GO_TO_PROJECT_EXCLUDE_DIRS=""
+[[ -z ${GODERE_ROOT} ]] && GODERE_ROOT="$HOME"
+[[ -z ${GODERE_DEPTH} ]] && GODERE_DEPTH="4"
+[[ -z ${GODERE_STAT} ]] && GODERE_STAT="stat"
+[[ -z ${GODERE_EXCLUDE_DIRS} ]] && GODERE_EXCLUDE_DIRS=""
 
-_GO_TO_PROJECT_FILE_NAME_CUTOFF_LENGTH=`expr ${#GO_TO_PROJECT_ROOT} + 1`
+_GODERE_FILE_NAME_CUTOFF_LENGTH=`expr ${#GODERE_ROOT} + 1`
 
-IFS=',' read -r -a _GO_TO_PROJECT_EXCLUDE_DIRS_ARRAY <<< "$GO_TO_PROJECT_EXCLUDE_DIRS"
-if [[ ${#_GO_TO_PROJECT_EXCLUDE_DIRS_ARRAY[@]} -eq 0 ]]; then
-    _GO_TO_PROJECT_EXCLUDE_ARGS=( )
+IFS=',' read -r -a _GODERE_EXCLUDE_DIRS_ARRAY <<< "$GODERE_EXCLUDE_DIRS"
+if [[ ${#_GODERE_EXCLUDE_DIRS_ARRAY[@]} -eq 0 ]]; then
+    _GODERE_EXCLUDE_ARGS=( )
 else
-    _GO_TO_PROJECT_EXCLUDE_ARGS=( -type d \( )
-    for index in "${!_GO_TO_PROJECT_EXCLUDE_DIRS_ARRAY[@]}"; do
+    _GODERE_EXCLUDE_ARGS=( -type d \( )
+    for index in "${!_GODERE_EXCLUDE_DIRS_ARRAY[@]}"; do
         if [[ $index -gt 0 ]]; then
-            _GO_TO_PROJECT_EXCLUDE_ARGS+=( -o )
+            _GODERE_EXCLUDE_ARGS+=( -o )
         fi
-        _GO_TO_PROJECT_EXCLUDE_ARGS+=( -name ${_GO_TO_PROJECT_EXCLUDE_DIRS_ARRAY[$index]} )
+        _GODERE_EXCLUDE_ARGS+=( -name ${_GODERE_EXCLUDE_DIRS_ARRAY[$index]} )
     done
-    _GO_TO_PROJECT_EXCLUDE_ARGS+=( \) -prune -false -o )
+    _GODERE_EXCLUDE_ARGS+=( \) -prune -false -o )
 fi
 
-go_to_project() {
+godere() {
 	local query="$@"
 	local query_arr=("$@")
 
@@ -45,14 +45,14 @@ go_to_project() {
 
 	[[ $GD_DEBUG > 0 ]] && echo "Fuzzy match: $fuzzy_match" && echo "Fuzzy word: $fuzzy_word" && echo "----------------------------------"
 
-	export go_to_project_res_dir="."
+	export godere_res_dir="."
 	while read dir; do
 		# Remove the timestamp prefix: "1382563122 /a/b/c" -> "/a/b/c"
 		dir="${dir:11}"
 
 		debug_info=""
 
-		local file_name="${dir:$_GO_TO_PROJECT_FILE_NAME_CUTOFF_LENGTH}"
+		local file_name="${dir:$_GODERE_FILE_NAME_CUTOFF_LENGTH}"
 		file_name=${file_name,,}
 
 		local quality=0
@@ -109,12 +109,20 @@ go_to_project() {
 		[[ $GD_DEBUG > 0 ]] && printf "%-60s | %-30s | %s\n" "$dir" "$debug_info" "$quality"
 
 		# If better quality than existing, replace
+		# If equal quality, prefer the shallower directory (fewer slashes)
 		if [[ $quality -gt $res_quality ]]; then
 			res_quality="$quality"
-			export go_to_project_res_dir="$dir"
+			export godere_res_dir="$dir"
+		elif [[ $quality -eq $res_quality ]] && [[ $quality -gt 0 ]]; then
+			local current_depth="${godere_res_dir//[^\/]/}"
+			local new_depth="${dir//[^\/]/}"
+			if [[ ${#new_depth} -lt ${#current_depth} ]]; then
+				export godere_res_dir="$dir"
+				[[ $GD_DEBUG > 0 ]] && echo "  -> Preferring shallower: $dir"
+			fi
 		fi
-	done < <(find $GO_TO_PROJECT_ROOT -maxdepth $GO_TO_PROJECT_DEPTH ${_GO_TO_PROJECT_EXCLUDE_ARGS[@]} -type d -exec $GO_TO_PROJECT_STAT --format '%Y %n' '{}' + | sort -gr)
+	done < <(find $GODERE_ROOT -maxdepth $GODERE_DEPTH ${_GODERE_EXCLUDE_ARGS[@]} -type d -exec $GODERE_STAT --format '%Y %n' '{}' + | sort -gr)
 
-	[[ $GD_DEBUG > 0 ]] && echo "----------------------------------" && echo "Destination: $go_to_project_res_dir"
-	cd "$go_to_project_res_dir"
+	[[ $GD_DEBUG > 0 ]] && echo "----------------------------------" && echo "Destination: $godere_res_dir"
+	cd "$godere_res_dir"
 }
