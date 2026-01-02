@@ -1,4 +1,4 @@
-# GoToProject
+# godere
 
 A simple bash command to help developers navigate between projects.
 
@@ -24,16 +24,16 @@ The target directory is determined by:
 - Existence of .git repository
 - Date of last change
 
-GoToProject just picks the most likely match and `cd`-s there. It's that simple.
+Godere just picks the most likely match and `cd`-s there. It's that simple.
 
-**TIP:** Set env. variable `GTP_DEBUG` to 1 to see debugging output.
+**TIP:** Set env. variable `GD_DEBUG` to 1 to see debugging output.
 
 ## Installation
 
 Paste this into your terminal and follow the on-screen instructions:
 
 ```
-wget -O- -q https://raw.githubusercontent.com/panta82/GoToProject/master/install.sh | bash
+wget -O- -q https://raw.githubusercontent.com/panta82/godere/master/install.sh | bash
 ```
 
 Alternatively, if you're a jaded untrusting soul, you could clone the repository, inspect the content and _then_ run `install.sh`,
